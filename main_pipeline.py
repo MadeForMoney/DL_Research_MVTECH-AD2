@@ -16,8 +16,9 @@ from PIL import Image
 import numpy as np
 
 # ---------- Our modules ----------
+from pca_mask import pca_foreground_mask
 from adaptive_gate import compute_descriptors, gbdt_gate
-from feature_extract import single_scale_features, multi_scale_features
+from feature_extract import extract_spatial_features
 from anomaly_core import compute_anomaly_scores
 from boosting_ensemble import boosting_refinement
 from postprocess import refine_anomaly_map
@@ -42,17 +43,19 @@ def run_pipeline(data_root, category, split="validation", gbdt_model_path=".src/
 
     # Process each image
     for img_path in image_files:
-        img = Image.open(img_path).convert("RGB")
+        pil_img = Image.open(img_path).convert("RGB")
+        np_img = np.array(pil_img)
 
-        # Step 2: Adaptive gate (decide feature extraction mode)
-        descriptors = compute_descriptors(img, mask=None)
+        # Step 2: PCA mask
+        mask = pca_foreground_mask(np_img)
+
+        # Step 3: Adaptive gate (decide feature extraction mode)
+        descriptors = compute_descriptors(pil_img, mask=mask)
         decision = gbdt_gate(descriptors, gbdt_model_path)
 
-        # Step 3: Feature extraction
-        if decision == "single-scale":
-            feats = single_scale_features(img)
-        else:
-            feats = multi_scale_features(img)
+        # Step 4: Feature extraction with DINOv2
+        feats = extract_spatial_features(np_img, strategy=decision)
+
 
         # Step 4: Core anomaly detection
         anomaly_map, score = compute_anomaly_scores(feats)
