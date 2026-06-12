@@ -93,29 +93,6 @@ class RGAE(nn.Module):
 
         return None, final_decode.permute(0, 2, 1).reshape(B, C, H, W)
 
-class AnomalyAggregator(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.mlp = nn.Sequential(
-            nn.Linear(4, 16),
-            nn.ReLU(),
-            nn.Linear(16, 1),
-            nn.Sigmoid()
-        )
-
-    def forward(self, anomaly_map):
-        flat = anomaly_map.flatten()
-        mean, var, maxv = flat.mean(), flat.var(), flat.max()
-        
-        # Robust top-k
-        k = max(1, int(0.01 * flat.numel()))
-        topk = torch.topk(flat, k).values.mean()
-
-        stats = torch.stack([mean, var, maxv, topk]).unsqueeze(0)
-        weight = self.mlp(stats).squeeze()
-        
-        return weight * topk + (1 - weight) * mean
-
 # ============================================================
 # 3. UTILITIES: DINO & PNNR
 # ============================================================
@@ -200,8 +177,6 @@ def run_evaluation(args):
     rgae = RGAE(feature_dim=C).to(DEVICE)
     rgae.load_state_dict(torch.load(model_path, map_location=DEVICE))
     rgae.eval()
-    
-    aggregator = AnomalyAggregator().to(DEVICE).eval()
 
     # 3. Load Bank
     pnnr_bank_raw = np.load(bank_path)
@@ -244,9 +219,8 @@ def run_evaluation(args):
         # Anomaly Map Calculation
         anomaly_map = np.mean((recon_rgae_np - recon_pnnr) ** 2, axis=2)
         
-        # Image Score
-        with torch.no_grad():
-            score = aggregator(torch.from_numpy(anomaly_map).to(DEVICE)).item()
+        # Image Score 
+        score = anomaly_map.max().item()
         image_scores.append(score)
         image_labels.append(label)
 
