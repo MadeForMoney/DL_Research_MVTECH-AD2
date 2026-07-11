@@ -44,7 +44,7 @@ def load_dinov2_model():
     try:
         _feature_extractor = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitb14').to(DEVICE)
         _feature_extractor.eval()
-        print("✔ DINOv2 Loaded.", flush=True)
+        print("DINOv2 Loaded.", flush=True)
     except Exception as e:
         print(f"Failed to load DINOv2: {e}")
         traceback.print_exc()
@@ -285,8 +285,11 @@ if __name__ == "__main__":
         print(f"Feature Dim: {C}, Grid: {H}x{W}")
 
         # 3. Define Paths
-        rgae_path = os.path.join(args.output_dir, "rgae_model.pth")
-        bank_path = os.path.join(args.output_dir, "pnnr_bank.npy")
+        category_name = os.path.basename(os.path.normpath(os.path.dirname(os.path.dirname(args.data_path))))
+        rgae_path = os.path.join(args.output_dir, f"rgae_{category_name}.pth")
+        bank_path = os.path.join(args.output_dir, f"pnnr_bank_{category_name}.npy")
+
+        print(f"Detected category: '{category_name}' (from data_path: {args.data_path})")
 
         # 4. Train RGAE
         rgae = train_rgae(features, C, args.epochs, rgae_path)
