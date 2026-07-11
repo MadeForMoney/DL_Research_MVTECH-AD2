@@ -28,8 +28,8 @@ Our method combines a **Residual Gated Autoencoder (RGAE)** with a **Patchwise N
 ```text
 .
 ├── data/                   # Dataset folder (Download MVTec AD here)
-├── train.py                # Main training script
-├── test.py                 # Evaluation script (Image & Pixel AUC)
+├── ResGatedAE_Train.py     # Main training script
+├── ResGatedAE_Test.py      # Evaluation script (Image & Pixel AUC)
 ├── heatmap.py              # Visualization script (Generates overlays)
 ├── requirements.txt        # Python dependencies
 ├── checkpoints/            # [Auto-generated] Saves trained models (.pth) and banks (.npy)
@@ -70,27 +70,27 @@ RGAE-PNNR/
 ```
 ## Usage
 1. Training
-To train the model on a specific category (e.g., bottle). This will automatically create a checkpoints/ folder and save the model (.pth) and memory bank (.npy).
+To train the model on a specific category (e.g., bottle), pass the direct path to the normal training images. This will automatically create a checkpoints/ folder and save the trained model (rgae_model.pth) and memory bank (pnnr_bank.npy).
 ```
-python train.py --data_root ./data/mvtec_ad --category bottle --epochs 50
+python ResGatedAE_Train.py --data_path ./data/mvtec_ad/bottle/train/good --epochs 50 --output_dir ./checkpoints
 ```
 Arguments:
 ```
---data_root: Path to the dataset root folder.
-
---category: The class name (e.g., bottle, hazelnut).
+--data_path: Path to the folder containing training images (normal samples).
 
 --epochs: Number of training epochs (default: 30).
+
+--output_dir: Directory to save the checkpoint (.pth) and memory bank (.npy) files (default: checkpoints).
 ```
 2. Evaluation
-To evaluate the trained model and calculate Image-level AUC and Pixel-level AUC.
+To evaluate the trained model and calculate Image-level AUC and Pixel-level AUC, point --data_root to the base dataset directory and specify the target category name. Ensure your checkpoint files are named matching the category (e.g., rgae_bottle.pth and pnnr_bank_bottle.npy).
 ```
-python test.py --data_root ./data/mvtec_ad/bottle/test/bad --category candle --checkpoint_dir ./checkpoints
+python ResGatedAE_Test.py --data_root ./data/mvtec_ad --category bottle --checkpoint_dir ./checkpoints
 ```
 3. Visualization (Heatmaps)
-To generate anomaly heatmaps overlayed on the test images. This will automatically create a heatmaps/ folder and save the images there.
+To generate anomaly heatmaps overlaid on test images, pass the path to the test image folder along with the matching category name. This will automatically create a heatmaps/ folder and save the visualizations there.
 ```
-python heatmap.py --data_path ./data/mvtec_ad/candle/test/bad --checkpoint_dir ./checkpoin
+python heatmap.py --data_path ./data/mvtec_ad/bottle/test/bad --checkpoint_dir ./checkpoints --category bottle
 ```
 
 ## License
