@@ -264,7 +264,7 @@ def pnnr_reconstruct(feature_map, bank_raw, bank_normed):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_path', type=str, required=True, help="Path to folder containing images")
-    parser.add_argument('--epochs', type=int, default=5)
+    parser.add_argument('--epochs', type=int, default=30)
     parser.add_argument('--output_dir', type=str, default="checkpoints")
     args = parser.parse_args()
 
