@@ -108,14 +108,6 @@ class RGAE_Reconstructor(nn.Module):
         self.feature_dim = feature_dim
         latent_dim = feature_dim // bottleneck_ratio
 
-        # Global Prototype
-        self.prototype_token = nn.Parameter(torch.randn(1, 1, feature_dim))
-
-        # Aggregation
-        self.aggregation = nn.ModuleList([
-            LightFFNBlock(feature_dim) for _ in range(1)
-        ])
-
         # Bottleneck
         self.pre_bottleneck = nn.Linear(feature_dim, latent_dim)
         self.bottleneck = nn.ModuleList([
@@ -138,29 +130,24 @@ class RGAE_Reconstructor(nn.Module):
         B, C, H, W = x.shape
         patch_tokens = x.flatten(2).permute(0, 2, 1)  # (B, HW, C)
 
-        # 1. Aggregation 
-        proto = self.prototype_token.expand(B, -1, -1)
-        for blk in self.aggregation:
-            proto = blk(proto) 
-
-        # 2. Bottleneck
+        # 1. Bottleneck
         z = self.pre_bottleneck(patch_tokens)
         z = self.dropout(z)
         for blk in self.bottleneck:
             z = blk(z)
         z = self.post_bottleneck(z)
 
-        # 3. Decoding 
+        # 2. Decoding 
         decoded_layers = []
         for blk in self.decoder:
             decoded_layers.append(blk(z))
 
-        # 4. Gating
+        # 3. Gating
         decoded_stack = torch.stack(decoded_layers, dim=1)
         gates = torch.softmax(self.gate_weights, dim=0)
         final_decode = (gates.view(1, -1, 1, 1) * decoded_stack).sum(dim=1)
 
-        # 5. Reshape
+        # 4. Reshape
         out = final_decode.permute(0, 2, 1).reshape(B, C, H, W)
         
         return out
